@@ -1,0 +1,8 @@
+
+      <%= form_tag("/pubkey", method: "get") do %>
+          <%= label_tag(:login, "Beziehe pubkey für:") %>
+          <%= text_field_tag(:login) %>
+          <%= submit_tag("Suchen") %>
+      <% end %>
+
+      <div>Ihr pubkey: <%= @key %> </div>

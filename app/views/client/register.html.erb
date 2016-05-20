@@ -1,0 +1,8 @@
+<%= form_tag("/register_server", method: "post") do %>
+    <%= label_tag(:login, "Username:") %>
+    <%= text_field_tag(:login) %>
+    <%= label_tag(:pass, "Passwort:") %>
+    <%= text_field_tag(:pass) %>
+    <%= submit_tag("Anmelden") %>
+<% end %>
+<%= link_to "Zurück", root_path %>
