@@ -39,6 +39,10 @@ GEM
     arel (6.0.3)
     autoprefixer-rails (6.3.6.1)
       execjs
+    better_errors (2.1.1)
+      coderay (>= 1.0.0)
+      erubis (>= 2.6.6)
+      rack (>= 0.9.0)
     binding_of_caller (0.7.2)
       debug_inspector (>= 0.0.1)
     bootstrap-sass (3.3.6)
@@ -46,6 +50,7 @@ GEM
       sass (>= 3.3.4)
     builder (3.2.2)
     byebug (9.0.4)
+    coderay (1.1.1)
     coffee-rails (4.1.1)
       coffee-script (>= 2.2.0)
       railties (>= 4.0.0, < 5.1.x)
@@ -82,6 +87,7 @@ GEM
     multi_json (1.12.1)
     nokogiri (1.6.7.2)
       mini_portile2 (~> 2.0.0.rc2)
+    pbkdf2 (0.1.0)
     rack (1.6.4)
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -153,12 +159,15 @@ PLATFORMS
 
 DEPENDENCIES
   autoprefixer-rails
+  better_errors
+  binding_of_caller
   bootstrap-sass
   byebug
   coffee-rails (~> 4.1.0)
   font-awesome-sass
   jbuilder (~> 2.0)
   jquery-rails
+  pbkdf2
   rails (= 4.2.6)
   rest-client
   sass-rails (~> 5.0)

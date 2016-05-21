@@ -1,0 +1,50 @@
+<div class="container">
+  <h2>Wähle aus:</h2>
+  <ul class="nav nav-tabs">
+    <li class="active"><a href="#home">Nachricht schreiben</a></li>
+    <li><a href="#menu1">Nachricht empfangen</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div id="home" class="tab-pane fade in active">
+      <h3>Neue Nachricht</h3>
+      <p><%= form_tag('/nachricht_schicken', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
+
+          <div class="form-group">
+            <label class="control-label col-sm-1"><i class="fa fa-user" aria-hidden="true"></i></label>
+            <div class="col-sm-4">
+              <%= text_field_tag(:recipient, '', class: 'form-control', placeholder:'Empfänger') %>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="control-label col-sm-1"><i class="fa fa-envelope" aria-hidden="true"></i></label>
+            <div class="col-sm-4">
+              <%= text_area_tag(:msg, '', class: 'form-control', placeholder:'Nachricht', rows:'5', id:'comment', type:'textarea') %>
+            </div>
+          </div>
+
+          <%= hidden_field_tag 'sender', @sender  %>
+          <%= hidden_field_tag 'privkey', @privkey_user  %>
+
+          <%= submit_tag('Abschicken', id:'black') %>
+
+      <% end %>
+      </p>
+    </div>
+    <div id="menu1" class="tab-pane fade">
+      <h3>Menu 1</h3>
+      <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function(){
+    $(".nav-tabs a").click(function(){
+      $(this).tab('show');
+    });
+  });
+
+
+</script>

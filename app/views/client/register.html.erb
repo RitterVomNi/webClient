@@ -1,26 +1,26 @@
 <div id="center">
   Registriere dich für unseren Service <br><br>
 
-  <%= form_tag("/register_server", method: "post", class:"form-horizontal") do %>
+  <%= form_tag('/register_server', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
 
       <div class="form-group">
         <label class="control-label col-sm-4"><i class="fa fa-user" aria-hidden="true"></i></label>
         <div class="col-sm-4">
-          <%= text_field_tag(:login, 'Dein Username', class: "form-control") %>
+          <%= text_field_tag(:login, '', class: 'form-control', placeholder:'Dein Username') %>
         </div>
       </div>
 
       <div class="form-group">
         <label class="control-label col-sm-4"><i class="fa fa-key" aria-hidden="true"></i></label>
         <div class="col-sm-4">
-          <%= text_field_tag(:pass, 'Dein Passwort', class: "form-control") %>
+          <%= text_field_tag(:pass, '', class: 'form-control', placeholder:'Dein Passwort', id:'pwd', type:'password') %>
         </div>
       </div>
 
-      <%= submit_tag("Anmelden", id:"black") %>
+      <%= submit_tag('Registrieren', id:'black') %>
 
   <% end %>
 
-  <%= link_to "Zurück", root_path, id:"black" %>
+  <%= link_to 'Zurück', root_path, id:'black' %>
 
 </div>
