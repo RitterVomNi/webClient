@@ -105,7 +105,12 @@
 
 /* Set height of the grid so .sidenav can be 100% (adjust as needed) */
 .row.content {
+  color: whitesmoke;
   height: 92vh;
+  background-image: image_url("back_kl.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.9;
 }
 
 /* Set gray background color and 100% height */
@@ -133,8 +138,16 @@ footer {
   }
   .row.content {height:auto;}
 }
-
 body {
   height: 100vh;
+  font-family: 'Jura', sans-serif;
+  font-size: 18px;
 }
 
+#center {
+  margin-top: 5%;
+  text-align: center;
+  font-size: larger;
+}
+
+#black { color:black}
