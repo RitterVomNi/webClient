@@ -4,11 +4,12 @@ Rails.application.routes.draw do
 
   # You can have the root of your site routed with "root"
    root 'client#index'
-   get 'get_pubkey' => 'client#get_pubkey'
-  post 'register_server' => 'client#register_server'
+   post 'register_server' => 'client#register_server'
    get 'register' => 'client#register'
-  get 'angemeldet' => 'client#angemeldet'
-  post 'nachricht_schicken' => 'client#nachricht_schicken'
+   get 'angemeldet' => 'client#angemeldet'
+   post 'nachricht_schicken' => 'client#nachricht_schicken'
+   get 'nachricht_abholen' => 'client#nachricht_abholen'
+   post 'nachricht_abholen' => 'client#nachricht_abholen'
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
 

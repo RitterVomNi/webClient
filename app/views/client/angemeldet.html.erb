@@ -1,12 +1,27 @@
 <div class="container">
   <h2>Wähle aus:</h2>
   <ul class="nav nav-tabs">
-    <li class="active"><a href="#home">Nachricht schreiben</a></li>
-    <li><a href="#menu1">Nachricht empfangen</a></li>
+    <li class="active"><a href="#empfangen">Nachricht empfangen</a></li>
+    <li><a href="#schreiben">Nachricht schreiben</a></li>
   </ul>
 
   <div class="tab-content">
-    <div id="home" class="tab-pane fade in active">
+    <div id="empfangen" class="tab-pane fade in active">
+      <h3>Nachrichten abholen</h3>
+      <p>
+      </p>
+      <%= form_tag('/nachricht_abholen', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
+          <%= hidden_field_tag 'login', @sender  %>
+
+          <%= submit_tag('Abholen', id:'black') %>
+      <% end %>
+      <% if @response != nil %>
+      <div> <%= @response[0] %> </div>
+      <div><%= simple_format(@response[1]) %></div>
+
+          <% end %>
+    </div>
+    <div id="schreiben" class="tab-pane fade">
       <h3>Neue Nachricht</h3>
       <p><%= form_tag('/nachricht_schicken', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
 
@@ -25,18 +40,14 @@
           </div>
 
           <%= hidden_field_tag 'sender', @sender  %>
-          <%= hidden_field_tag 'privkey', @privkey_user  %>
 
           <%= submit_tag('Abschicken', id:'black') %>
 
       <% end %>
       </p>
     </div>
-    <div id="menu1" class="tab-pane fade">
-      <h3>Menu 1</h3>
-      <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-    </div>
   </div>
+
 </div>
 
 <script>
@@ -45,6 +56,5 @@
       $(this).tab('show');
     });
   });
-
 
 </script>
