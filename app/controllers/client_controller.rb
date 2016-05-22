@@ -58,6 +58,8 @@ class ClientController < ApplicationController
     @privkey_user = decipher.update(privkey_user_enc) + decipher.final
 
     Rails.cache.write('priv_key', @privkey_user, timeToLive: 600.seconds)
+    Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
+
 
     render :'client/angemeldet'
 
@@ -133,12 +135,12 @@ class ClientController < ApplicationController
 
     iu = OpenSSL::Digest::SHA256.new
     iu << timestamp.to_s
-    iu << params[:login]
+    iu << Rails.cache.read('login')
     dig_sig = iu.digest
 
     digitale_signatur = Base64.encode64(dig_sig)
 
-    response = RestClient.get(Constant.wsurl+params[:login]+"/message", {:params => {login: params[:login], timestamp: timestamp, digitale_signatur: digitale_signatur }})
+    response = RestClient.get(Constant.wsurl+Rails.cache.read('login')+"/message", {:params => {login: Rails.cache.read('login'), timestamp: timestamp, digitale_signatur: digitale_signatur }})
     @response = JSON.parse(response, symbolize_names: true)
 
     pub_key = JSON.parse(Client.get_pubkey(@response[:sender]), symbolize_names: true)

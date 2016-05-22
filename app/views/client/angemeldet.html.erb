@@ -1,5 +1,5 @@
 <div class="container">
-  <h2>Wähle aus:</h2>
+  <h2>Hallo <%= Rails.cache.read('login') %>! Wähle eine Funktion:</h2>
   <ul class="nav nav-tabs">
     <li class="active"><a href="#empfangen">Nachricht empfangen</a></li>
     <li><a href="#schreiben">Nachricht schreiben</a></li>
@@ -16,8 +16,11 @@
           <%= submit_tag('Abholen', id:'black') %>
       <% end %>
       <% if @response != nil %>
-      <div> <%= @response[0] %> </div>
-      <div><%= simple_format(@response[1]) %></div>
+          <br>
+          <div class="panel pcool" id="shadow">
+            <div class="panel-heading chathead" id="chath">Von: <%= @response[0] %> </div>
+            <div class="panel-body chat" id="chatt"><%= simple_format(@response[1]) %></div>
+          </div>
 
           <% end %>
     </div>

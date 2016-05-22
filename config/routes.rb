@@ -6,7 +6,7 @@ Rails.application.routes.draw do
    root 'client#index'
    post 'register_server' => 'client#register_server'
    get 'register' => 'client#register'
-   get 'angemeldet' => 'client#angemeldet'
+   post 'angemeldet' => 'client#angemeldet'
    post 'nachricht_schicken' => 'client#nachricht_schicken'
    get 'nachricht_abholen' => 'client#nachricht_abholen'
    post 'nachricht_abholen' => 'client#nachricht_abholen'

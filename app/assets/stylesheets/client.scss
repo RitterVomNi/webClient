@@ -151,3 +151,31 @@ body {
 }
 
 #black { color:black}
+
+.pcool {
+  background-image: image_url("chat_kl.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  //opacity: 0.6;
+}
+
+
+#chatt {
+  color: black;
+  font-weight: bold;
+  font-size: larger;
+}
+
+#chath {
+  color: black;
+  font-weight: bold;
+  font-size: larger;
+  border-bottom: solid 3px;
+}
+
+#shadow {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+#shadow:hover {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.4), 0 6px 20px 0 rgba(0, 0, 0, 0.40);
+}

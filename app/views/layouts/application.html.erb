@@ -27,7 +27,7 @@
               <div class="loginmodal-container">
                 <h1>Melde dich an</h1><br>
 
-                <%= form_tag('/angemeldet', method: 'get', class:'form-horizontal') do %>
+                <%= form_tag('/angemeldet', method: 'post', class:'form-horizontal') do %>
 
                     <div class="form-group">
                       <label class="control-label col-sm-2"><i class="fa fa-user" aria-hidden="true"></i></label>
@@ -39,7 +39,7 @@
                     <div class="form-group">
                       <label class="control-label col-sm-2"><i class="fa fa-key" aria-hidden="true"></i></label>
                       <div class="col-sm-10">
-                        <%= text_field_tag(:pass, '' ,placeholder:'Dein Passwort', class: 'form-control') %>
+                        <%= text_field_tag(:pass, '' ,placeholder:'Dein Passwort', class: 'form-control', type:'password') %>
                       </div>
                     </div>
 
