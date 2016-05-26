@@ -19,15 +19,16 @@
     </div>
     <div class="collapse navbar-collapse" id="myNavbar">
       <ul class="nav navbar-nav navbar-right">
+        <% if Rails.cache.read('login') == nil %>
 
-        <li><a href="#" data-toggle="modal" data-target="#login-modal"><span class="glyphicon glyphicon-log-in"></span> Login</a>
+        <li><a href="#" data-toggle="modal" data-target="#login-modal"><i class="fa fa-sign-in" aria-hidden="true"></i> Login</a>
 
           <div class="modal fade" id="login-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
             <div class="modal-dialog">
               <div class="loginmodal-container">
                 <h1>Melde dich an</h1><br>
 
-                <%= form_tag('/angemeldet', method: 'post', class:'form-horizontal') do %>
+                <%= form_tag(angemeldet_url, method: 'post', class:'form-horizontal') do %>
 
                     <div class="form-group">
                       <label class="control-label col-sm-2"><i class="fa fa-user" aria-hidden="true"></i></label>
@@ -47,14 +48,49 @@
 
                 <% end %>
 
-                <div class="login-help">
-                  <%= link_to 'Registrieren', 'register' %>
-                </div>
               </div>
             </div>
           </div>
         </li>
 
+        <li>
+          <a href="#" data-toggle="modal" data-target="#register-modal"><i class="fa fa-user-plus" aria-hidden="true"></i> Registrieren</a>
+          <div class="modal fade" id="register-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
+            <div class="modal-dialog">
+              <div class="registermodal-container">
+                <h1>Registriere dich für unseren Service</h1><br>
+
+                <%= form_tag('/register_server', method: 'get', class:'form-horizontal', authenticity_token: false) do %>
+
+                    <div class="form-group">
+                      <label class="control-label col-sm-2"><i class="fa fa-user" aria-hidden="true"></i></label>
+                      <div class="col-sm-10">
+                        <%= text_field_tag(:login, '', class: 'form-control', placeholder:'Dein Username') %>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="control-label col-sm-2"><i class="fa fa-key" aria-hidden="true"></i></label>
+                      <div class="col-sm-10">
+                        <%= text_field_tag(:pass, '' ,placeholder:'Dein Passwort', class: 'form-control', type:'password') %>
+                      </div>
+                    </div>
+
+                    <%= submit_tag('Registrieren', id:'black', style:'width:60%; margin:auto') %>
+
+                <% end %>
+
+              </div>
+            </div>
+          </div>
+
+        </li>
+            <% else %>
+
+            <li>
+              <%= link_to 'Ausloggen', logout_path %>
+            </li>
+      <% end %>
       </ul>
     </div>
   </div>
@@ -66,14 +102,21 @@
     </div>
     <div class="col-sm-8 text-left">
 
+      <% if flash[:notice] %>
+          <div class="alert alert-success" id="alert">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <%= flash[:notice] %>
+          </div>
+      <% end %>
 
-        <% flash.each do |key, value| %>
-            <div class="alert alert-<%= key %>"><%= value %></div>
-        <% end %>
-
+      <% if flash[:alert] %>
+          <div class="alert alert-danger" id="alert">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <%= flash[:alert] %>
+          </div>
+      <% end %>
 
         <%= yield %>
-
 
 
 

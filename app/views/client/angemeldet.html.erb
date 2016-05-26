@@ -3,30 +3,69 @@
   <ul class="nav nav-tabs">
     <li class="active"><a href="#empfangen">Nachricht empfangen</a></li>
     <li><a href="#schreiben">Nachricht schreiben</a></li>
+    <li><a href="#account">Account</a></li>
   </ul>
 
   <div class="tab-content">
     <div id="empfangen" class="tab-pane fade in active">
-      <h3>Nachrichten abholen</h3>
-      <p>
-      </p>
-      <%= form_tag('/nachricht_abholen', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
-          <%= hidden_field_tag 'login', @sender  %>
+      <br>
 
-          <%= submit_tag('Abholen', id:'black') %>
-      <% end %>
-      <% if @response != nil %>
-          <br>
-          <div class="panel pcool" id="shadow">
-            <div class="panel-heading chathead" id="chath">Von: <%= @response[0] %> </div>
-            <div class="panel-body chat" id="chatt"><%= simple_format(@response[1]) %></div>
+      <div class="container">
+        <div class="row">
+          <div class="col-sm-4" id="black">
+
+            <%= button_to 'Aktuellste Nachricht abholen', 'nachricht_abholen', method: 'get', data: {authenticity_token: false} %>
+
           </div>
 
+          <div class="col-sm-4" id="black">
+
+            <%= button_to 'Alle Nachrichten abholen', 'nachrichten_abholen', method: 'get', data: {authenticity_token: false} %>
+
+          </div>
+
+          <div class="col-sm-4" id="black">
+
+            <%= button_to 'Alle Nachrichten löschen', 'destroy_all', method: 'get', data: {confirm: 'Wirklich alle Nachrichten vom Server löschen?', authenticity_token: false} %>
+
+          </div>
+        </div>
+       </div>
+
+
+      <% if @response == 'null' %>
+
+          <%= render partial: 'client/keine_nachrichten' %>
+
+      <% else %>
+
+          <% if @response != nil %>
+
+              <%= render partial: 'client/neue_nachrichten', locals: {i: @response}%>
+
           <% end %>
+
+          <% if @responses != nil %>
+
+              <% @responses.each do |i| %>
+
+                  <%= render partial: 'client/neue_nachrichten', locals: {i: i}  %>
+
+              <% end %>
+
+          <% end %>
+
+          <% if @responses == [] %>
+
+              <%= render partial: 'client/keine_nachrichten' %>
+
+          <% end %>
+      <% end %>
+
     </div>
     <div id="schreiben" class="tab-pane fade">
       <h3>Neue Nachricht</h3>
-      <p><%= form_tag('/nachricht_schicken', method: 'post', class:'form-horizontal', authenticity_token: false) do %>
+      <p><%= form_tag('/nachricht_schicken', method: 'get', class:'form-horizontal', authenticity_token: false) do %>
 
           <div class="form-group">
             <label class="control-label col-sm-1"><i class="fa fa-user" aria-hidden="true"></i></label>
@@ -42,13 +81,23 @@
             </div>
           </div>
 
-          <%= hidden_field_tag 'sender', @sender  %>
-
           <%= submit_tag('Abschicken', id:'black') %>
 
       <% end %>
-      </p>
+
     </div>
+
+    <div id="account" class="tab-pane fade">
+      <h3>Account löschen</h3>
+    <div id="black">
+      <%= button_to 'Account löschen', 'destroy_user', method: 'get', data: {confirm: 'Möchtest du wirklich deinen Account löschen? Alle erhaltenen Nachrichten gehen verloren!', authenticity_token: false} %>
+
+    </div>
+
+
+
+    </div>
+
   </div>
 
 </div>
