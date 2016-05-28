@@ -31,7 +31,7 @@ class ClientController < ApplicationController
       case response.code
         when 400
           flash[:alert] = 'Login bereits vergeben.'
-        when 200
+        when 201
           flash[:notice] = 'Erfolgreich registriert.'
         else
           flash[:alert] = 'Irgendetwas ist schief gelaufen.'
@@ -151,7 +151,7 @@ class ClientController < ApplicationController
       case response.code
         when 404
           flash.now[:alert] = 'User nicht gefunden'
-        when 200
+        when 201
           flash.now[:notice] = 'Erfolgreich verschickt'
         else
           flash.now[:alert] = 'Irgendwas ist schief gelaufen'

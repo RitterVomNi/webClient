@@ -48,7 +48,9 @@ class Client
     iu << login
     dig_sig = iu.digest
 
-    return Base64.encode64(dig_sig)
+    privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
+
+    return Base64.encode64(privkey_user.private_encrypt(dig_sig))
 
   end
 end
