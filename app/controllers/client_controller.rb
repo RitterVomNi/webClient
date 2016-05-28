@@ -204,6 +204,7 @@ class ClientController < ApplicationController
   end
 
   def nachrichten_abholen
+
     timestamp =  Time.now.to_i
 
     response = RestClient.get(Constant.wsurl+Rails.cache.read('login')+'/messages', {:params => {login: Rails.cache.read('login'), timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login')) }})
@@ -242,9 +243,6 @@ class ClientController < ApplicationController
 
       ausgabe.push [i[:sender], content, i[:id], i[:created_at].to_time]
       end
-      #attributes = [:sender, :content_enc, :iv, :key_recipient_enc, :sig_recipient, :id]
-
-     # @response = @response.collect { |h| h.values_at(*attributes) }
 
       @responses = ausgabe
 
@@ -258,6 +256,7 @@ class ClientController < ApplicationController
   def destroy_single
 
     timestamp =  Time.now.to_i
+
     Client.destroy_single(Rails.cache.read('login'), params[:id], timestamp, Client.dig_sig(timestamp, Rails.cache.read('login')))
 
     render :'client/angemeldet'
@@ -265,7 +264,9 @@ class ClientController < ApplicationController
   end
 
   def destroy_all
+
     timestamp =  Time.now.to_i
+
     Client.destroy_all(Rails.cache.read('login'), timestamp, Client.dig_sig(timestamp, Rails.cache.read('login')))
 
     render :'client/angemeldet'
@@ -273,7 +274,9 @@ class ClientController < ApplicationController
   end
 
   def destroy_user
+
     timestamp =  Time.now.to_i
+
     RestClient.delete Constant.wsurl+Rails.cache.read('login'), {timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login'))}
 
     redirect_to root_path
@@ -283,7 +286,9 @@ class ClientController < ApplicationController
   def logout
 
     Rails.cache.clear
+
     flash[:notice] = 'Erfolgreich ausgelogt'
+
     redirect_to root_url
 
   end

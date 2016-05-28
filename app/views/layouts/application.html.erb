@@ -28,7 +28,7 @@
               <div class="loginmodal-container">
                 <h1>Melde dich an</h1><br>
 
-                <%= form_tag(angemeldet_url, method: 'post', class:'form-horizontal') do %>
+                <%= form_tag(angemeldet_url, method: 'post', class:'form-horizontal', authenticity_token: false) do %>
 
                     <div class="form-group">
                       <label class="control-label col-sm-2"><i class="fa fa-user" aria-hidden="true"></i></label>
