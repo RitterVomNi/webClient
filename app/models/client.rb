@@ -9,7 +9,6 @@ class Client
 
   # Masterkey bilden
   def self.master_key(pass, salt)
-
     # Iterationen
     iter = 10000
 

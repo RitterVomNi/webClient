@@ -43,8 +43,11 @@ class ClientController < ApplicationController
   def angemeldet
     Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
 
+    a = Rails.cache.read('login')
 
-    RestClient.get(Constant.wsurl+Rails.cache.read('login')){ |response|
+
+
+    RestClient.get(Constant.wsurl+a){ |response|
       case response.code
         when 400
           Rails.cache.clear
@@ -56,6 +59,8 @@ class ClientController < ApplicationController
             # Fertiger Masterkey durch Aufruf der Methode master_key in client.rb -> DRY
             masterkey = Client.master_key(params[:pass], @key[:salt_masterkey])
 
+
+
             # Entschlüsselung vorbereiten
             decipher = OpenSSL::Cipher.new 'AES-128-ECB'
             decipher.decrypt
@@ -63,6 +68,7 @@ class ClientController < ApplicationController
 
             # Da in der DB in Base64 persistiert wieder decodieren
             privkey_user_enc = Base64.decode64(@key[:privkey_user_enc])
+
 
             # Entschlüsseln
             @privkey_user = decipher.update(privkey_user_enc) + decipher.final
