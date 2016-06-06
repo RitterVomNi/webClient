@@ -283,9 +283,13 @@ class ClientController < ApplicationController
 
     timestamp =  Time.now.to_i
 
-    RestClient.delete Constant.wsurl+Rails.cache.read('login'), {timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login'))}
+    Client.destroy_user(Rails.cache.read('login'), timestamp, Client.dig_sig(timestamp, Rails.cache.read('login')))
 
-    redirect_to root_path
+    Rails.cache.clear
+
+    flash[:notice] = 'Account gelöscht'
+
+    redirect_to root_url
 
   end
 

@@ -39,6 +39,13 @@ class Client
 
   end
 
+  def self.destroy_user(recipient, timestamp, dig_sig)
+
+    RestClient.delete(Constant.wsurl+recipient, {params: {login: recipient, timestamp: timestamp, digitale_signatur: dig_sig}})
+
+
+  end
+
 
   def self.dig_sig(timestamp, login)
 
