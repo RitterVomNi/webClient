@@ -1,7 +1,7 @@
 class Constant
 
   def self.wsurl
-    'https://webengserver.herokuapp.com/'
+    'http://10.60.68.109/'
   end
 
 end

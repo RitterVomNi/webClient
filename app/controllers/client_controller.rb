@@ -26,8 +26,10 @@ class ClientController < ApplicationController
     privkey_user_enc = Base64.encode64(encrypted)
 
 
+    bla = privkey_user_enc.length
+    bla2 = salt_masterkey.length
     # Post request an den Server, WSURL als konstante URL des WebService in selbst definierter constants.rb
-    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], salt_masterkey: salt_masterkey, pubkey_user: pubkey_user, privkey_user_enc: privkey_user_enc}) { |response|
+    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response|
       case response.code
         when 400
           flash[:alert] = 'Login bereits vergeben.'
@@ -42,10 +44,6 @@ class ClientController < ApplicationController
 
   def angemeldet
     Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
-
-    a = Rails.cache.read('login')
-
-
 
     RestClient.get(Constant.wsurl+a){ |response|
       case response.code
