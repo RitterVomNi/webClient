@@ -25,9 +25,6 @@ class ClientController < ApplicationController
     # In Base64 zum persistieren in der DB encodieren
     privkey_user_enc = Base64.encode64(encrypted)
 
-
-    bla = privkey_user_enc.length
-    bla2 = salt_masterkey.length
     # Post request an den Server, WSURL als konstante URL des WebService in selbst definierter constants.rb
     RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response|
       case response.code
@@ -281,9 +278,13 @@ class ClientController < ApplicationController
 
     timestamp =  Time.now.to_i
 
-    RestClient.delete Constant.wsurl+Rails.cache.read('login'), {timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login'))}
+    Client.destroy_user(Rails.cache.read('login'), timestamp, Client.dig_sig(timestamp, Rails.cache.read('login')))
 
-    redirect_to root_path
+    Rails.cache.clear
+
+    flash[:notice] = 'Account gelöscht'
+
+    redirect_to root_url
 
   end
 
