@@ -3,7 +3,8 @@ class Client
   # Pubkey des Empfängers vom Server beziehen
   def self.get_pubkey(recipient)
 
-    RestClient.get Constant.wsurl+recipient+'/pubkey', login: recipient
+    return RestClient.get(Constant.wsurl+recipient+'/publickey', {:content_type => 'application/json', :accept => 'application/json'})
+
 
   end
 

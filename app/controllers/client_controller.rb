@@ -42,17 +42,17 @@ class ClientController < ApplicationController
   def angemeldet
     Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
 
-    RestClient.get(Constant.wsurl+a){ |response|
+    RestClient.get(Constant.wsurl+Rails.cache.read('login'), {:content_type => 'application/json', :accept => 'application/json'}) { |response|
       case response.code
         when 400
           Rails.cache.clear
           redirect_to root_url, alert: 'Login falsch'
         when 200
           begin
-            @key = JSON.parse(response, symbolize_names: true)
+            key = JSON.parse(response, symbolize_names: true)
 
             # Fertiger Masterkey durch Aufruf der Methode master_key in client.rb -> DRY
-            masterkey = Client.master_key(params[:pass], @key[:salt_masterkey])
+            masterkey = Client.master_key(params[:pass], key[:SaltMasterkey])
 
 
 
@@ -62,13 +62,13 @@ class ClientController < ApplicationController
             decipher.key = masterkey
 
             # Da in der DB in Base64 persistiert wieder decodieren
-            privkey_user_enc = Base64.decode64(@key[:privkey_user_enc])
+            privkey_user_enc = Base64.decode64(key[:PrivateKeyEncoded])
 
 
             # Entschlüsseln
-            @privkey_user = decipher.update(privkey_user_enc) + decipher.final
+            privkey_user = decipher.update(privkey_user_enc) + decipher.final
 
-            Rails.cache.write('priv_key', @privkey_user, timeToLive: 600.seconds)
+            Rails.cache.write('priv_key', privkey_user, timeToLive: 600.seconds)
 
 
             render :'client/angemeldet'
@@ -88,7 +88,8 @@ class ClientController < ApplicationController
   def nachricht_schicken
 
     begin
-      pubkey_recipient = JSON.parse(Client.get_pubkey(params[:recipient]), symbolize_names: true)[:pubkey_user]
+      pubkey_recipient = JSON.parse(Client.get_pubkey(params[:recipient]), symbolize_names: true)[:PublicKey]
+
 
       key_recipient = SecureRandom.hex(16)
       iv = SecureRandom.hex(16)
@@ -129,6 +130,8 @@ class ClientController < ApplicationController
       au << params[:recipient]
       au_digest = au.digest
 
+      timestamp = Time.zone.now()
+
       sig_service = privkey_user.private_encrypt(au_digest)
 
 
@@ -146,15 +149,21 @@ class ClientController < ApplicationController
     end
 
 
-    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {content_enc: content_enc64, recipient: params[:recipient],
-                                                                     sender: Rails.cache.read('login'), iv: iv, key_recipient_enc: key_recipient_enc64,
-                                                                     sig_recipient: sig_recipient64, timestamp: timestamp, sig_service: sig_service64}) { |response|
+    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {Cipher: content_enc64, Identity: Rails.cache.read('login'),
+                                                                     InitialisationVector: iv, KeyRecipientEncoded: key_recipient_enc64,
+                                                                     SinaturRecipient: sig_recipient64, RecipientIdentity: params[:recipient], UnixTimestamp: timestamp, SinatureService: sig_service64}) { |response|
       case response.code
-        when 404
+        when 400
+          render 'lol'
           flash.now[:alert] = 'User nicht gefunden'
         when 201
+          render 'lol'
+          flash.now[:notice] = 'Erfolgreich verschickt'
+        when 200
+          render 'lol'
           flash.now[:notice] = 'Erfolgreich verschickt'
         else
+          render 'lol'
           flash.now[:alert] = 'Irgendwas ist schief gelaufen'
       end
     }
