@@ -25,8 +25,10 @@ class ClientController < ApplicationController
     # In Base64 zum persistieren in der DB encodieren
     privkey_user_enc = Base64.encode64(encrypted)
 
+
+
     # Post request an den Server, WSURL als konstante URL des WebService in selbst definierter constants.rb
-    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response|
+    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response, request|
       case response.code
         when 400
           flash[:alert] = 'Login bereits vergeben.'
@@ -130,11 +132,7 @@ class ClientController < ApplicationController
       au << params[:recipient]
       au_digest = au.digest
 
-      timestamp = Time.zone.now()
-
       sig_service = privkey_user.private_encrypt(au_digest)
-
-
 
 
       content_enc64 = Base64.encode64(content_enc)
@@ -148,10 +146,10 @@ class ClientController < ApplicationController
       return
     end
 
-
-    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {Cipher: content_enc64, Identity: Rails.cache.read('login'),
-                                                                     InitialisationVector: iv, KeyRecipientEncoded: key_recipient_enc64,
-                                                                     SinaturRecipient: sig_recipient64, RecipientIdentity: params[:recipient], UnixTimestamp: timestamp, SinatureService: sig_service64}) { |response|
+    RestClient.log = $stdout
+    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {params: { InnerMessage: { Identity: Rails.cache.read('login'), Cipher: content_enc64, InitialisiationVector: iv,
+                                                                   KeyRecipientEncoded: key_recipient_enc64, SignatureRecipient: sig_recipient64 }, UnixTimestamp: timestamp,
+                                                                   RecipientIdentity: params[:recipient], SignatureService: sig_service64 }.to_json}, content_type: 'application/json' , accept: 'application/json') { |response, request|
       case response.code
         when 400
           render 'lol'
