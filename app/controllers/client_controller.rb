@@ -14,11 +14,15 @@ class ClientController < ApplicationController
 
     # Pubkey auslesen
     pubkey_user = rsa_key.public_key
+    # pubkey_user.gsub!('-----BEGIN PUBLIC KEY-----','')
+    # pubkey_user.sub!('-----END PUBLIC KEY-----','')
+    # pubkey_user.strip
 
     # Verschlüsselung vorbereiten
     cipher = OpenSSL::Cipher.new 'AES-128-ECB'
     cipher.encrypt
     cipher.key = masterkey
+
 
     # Verschlüsseln
     encrypted = cipher.update(rsa_key.to_pem) + cipher.final
@@ -152,16 +156,12 @@ class ClientController < ApplicationController
                                                                    RecipientIdentity: params[:recipient], SignatureService: sig_service64 }.to_json}, content_type: 'application/json' , accept: 'application/json') { |response, request|
       case response.code
         when 400
-          render 'lol'
           flash.now[:alert] = 'User nicht gefunden'
         when 201
-          render 'lol'
           flash.now[:notice] = 'Erfolgreich verschickt'
         when 200
-          render 'lol'
           flash.now[:notice] = 'Erfolgreich verschickt'
         else
-          render 'lol'
           flash.now[:alert] = 'Irgendwas ist schief gelaufen'
       end
     }
@@ -171,18 +171,22 @@ class ClientController < ApplicationController
   def nachricht_abholen
     timestamp =  Time.zone.now.to_i
 
-    @response = RestClient.get(Constant.wsurl+Rails.cache.read('login')+'/message', {:params => {login: Rails.cache.read('login'), timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login')) }})
-    if @response != 'null'
+    id = Rails.cache.read('login')
+    sig = Client.dig_sig(timestamp, id)
 
-    @response = JSON.parse(@response, symbolize_names: true)
+    response = RestClient.get Constant.wsurl+Rails.cache.read('login')+'/message', {params:  {UnixTimestamp: timestamp, Identity: id,  SignatureService: sig, accept: 'application/json'}}
 
-    pub_key = JSON.parse(Client.get_pubkey(@response[:sender]), symbolize_names: true)
+    if response != 'null'
+
+    response = JSON.parse(response, symbolize_names: true)
+
+    pub_key = JSON.parse(Client.get_pubkey(response[:sender]), symbolize_names: true)
 
     pubkey_user = OpenSSL::PKey::RSA.new(pub_key[:pubkey_user])
 
     check = false
     begin
-      pubkey_user.public_decrypt(Base64.decode64(@response[:sig_recipient]))
+      pubkey_user.public_decrypt(Base64.decode64(response[:sig_recipient]))
       check = true
     rescue
 
@@ -191,18 +195,18 @@ class ClientController < ApplicationController
     return head 404 unless check
 
     privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
-    key_recipient = privkey_user.private_decrypt(Base64.decode64(@response[:key_recipient_enc]))
+    key_recipient = privkey_user.private_decrypt(Base64.decode64(response[:key_recipient_enc]))
 
 
     cipher = OpenSSL::Cipher.new 'AES-128-CBC'
     cipher.decrypt
     cipher.key = key_recipient
-    cipher.iv = @response[:iv]
+    cipher.iv = response[:iv]
 
-    content = cipher.update(Base64.decode64(@response[:content_enc])) + cipher.final
+    content = cipher.update(Base64.decode64(response[:content_enc])) + cipher.final
 
 
-    @response = [@response[:sender], content, @response[:id], @response[:created_at].to_time]
+    @response = [response[:sender], content, response[:id], response[:created_at].to_time]
 
     end
 

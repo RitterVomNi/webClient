@@ -57,7 +57,7 @@ class Client
 
     privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
 
-    return Base64.encode64(privkey_user.private_encrypt(dig_sig))
+    return Base64.encode64(privkey_user.sign digest, dig_sig)
 
   end
 end
