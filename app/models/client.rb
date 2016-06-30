@@ -3,7 +3,8 @@ class Client
   # Pubkey des Empfängers vom Server beziehen
   def self.get_pubkey(recipient)
 
-    RestClient.get Constant.wsurl+recipient+'/pubkey', login: recipient
+    return RestClient.get(Constant.wsurl+recipient+'/publickey', {:content_type => 'application/json', :accept => 'application/json'})
+
 
   end
 
@@ -56,7 +57,7 @@ class Client
 
     privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
 
-    return Base64.encode64(privkey_user.private_encrypt(dig_sig))
+    return Base64.encode64(privkey_user.sign digest, dig_sig)
 
   end
 end

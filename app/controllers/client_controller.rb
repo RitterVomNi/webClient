@@ -14,11 +14,15 @@ class ClientController < ApplicationController
 
     # Pubkey auslesen
     pubkey_user = rsa_key.public_key
+    # pubkey_user.gsub!('-----BEGIN PUBLIC KEY-----','')
+    # pubkey_user.sub!('-----END PUBLIC KEY-----','')
+    # pubkey_user.strip
 
     # Verschlüsselung vorbereiten
     cipher = OpenSSL::Cipher.new 'AES-128-ECB'
     cipher.encrypt
     cipher.key = masterkey
+
 
     # Verschlüsseln
     encrypted = cipher.update(rsa_key.to_pem) + cipher.final
@@ -26,8 +30,9 @@ class ClientController < ApplicationController
     privkey_user_enc = Base64.encode64(encrypted)
 
 
+
     # Post request an den Server, WSURL als konstante URL des WebService in selbst definierter constants.rb
-    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], salt_masterkey: salt_masterkey, pubkey_user: pubkey_user, privkey_user_enc: privkey_user_enc}) { |response|
+    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response, request|
       case response.code
         when 400
           flash[:alert] = 'Login bereits vergeben.'
@@ -43,21 +48,17 @@ class ClientController < ApplicationController
   def angemeldet
     Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
 
-    a = Rails.cache.read('login')
-
-
-
-    RestClient.get(Constant.wsurl+a){ |response|
+    RestClient.get(Constant.wsurl+Rails.cache.read('login'), {:content_type => 'application/json', :accept => 'application/json'}) { |response|
       case response.code
         when 400
           Rails.cache.clear
           redirect_to root_url, alert: 'Login falsch'
         when 200
           begin
-            @key = JSON.parse(response, symbolize_names: true)
+            key = JSON.parse(response, symbolize_names: true)
 
             # Fertiger Masterkey durch Aufruf der Methode master_key in client.rb -> DRY
-            masterkey = Client.master_key(params[:pass], @key[:salt_masterkey])
+            masterkey = Client.master_key(params[:pass], key[:SaltMasterkey])
 
 
 
@@ -67,13 +68,13 @@ class ClientController < ApplicationController
             decipher.key = masterkey
 
             # Da in der DB in Base64 persistiert wieder decodieren
-            privkey_user_enc = Base64.decode64(@key[:privkey_user_enc])
+            privkey_user_enc = Base64.decode64(key[:PrivateKeyEncoded])
 
 
             # Entschlüsseln
-            @privkey_user = decipher.update(privkey_user_enc) + decipher.final
+            privkey_user = decipher.update(privkey_user_enc) + decipher.final
 
-            Rails.cache.write('priv_key', @privkey_user, timeToLive: 600.seconds)
+            Rails.cache.write('priv_key', privkey_user, timeToLive: 600.seconds)
 
 
             render :'client/angemeldet'
@@ -93,7 +94,8 @@ class ClientController < ApplicationController
   def nachricht_schicken
 
     begin
-      pubkey_recipient = JSON.parse(Client.get_pubkey(params[:recipient]), symbolize_names: true)[:pubkey_user]
+      pubkey_recipient = JSON.parse(Client.get_pubkey(params[:recipient]), symbolize_names: true)[:PublicKey]
+
 
       key_recipient = SecureRandom.hex(16)
       iv = SecureRandom.hex(16)
@@ -113,36 +115,41 @@ class ClientController < ApplicationController
 
       key_recipient_enc = pubkey.public_encrypt(key_recipient)
 
+      content_enc64 = Base64.encode64(content_enc)
+
+      key_recipient_enc64 = Base64.encode64(key_recipient_enc)
+
       iu = OpenSSL::Digest.new('sha256')
-      iu << content_enc
+
+      iu << Rails.cache.read('login')
+      iu << content_enc64
       iu << iv
-      iu << key_recipient_enc
+      iu << key_recipient_enc64
       iu_digest = iu.digest
 
       sig_recipient = privkey_user.private_encrypt(iu_digest)
 
+      sig_recipient64 = Base64.encode64(sig_recipient)
+
       timestamp =  Time.now.to_i #1463908070 einsetzen, um Timestamp check am Server zu testen, muss zu Fehler führen
 
-      au = OpenSSL::Digest.new('sha256')
-      au << content_enc
-      au << iv
-      au << sig_recipient
-      au << Rails.cache.read('login')
-      au << key_recipient_enc
-      au << iu_digest
-      au << timestamp.to_s
-      au << params[:recipient]
-      au_digest = au.digest
+      digest = OpenSSL::Digest::SHA256.new
 
-      sig_service = privkey_user.private_encrypt(au_digest)
+     # au << Rails.cache.read('login')
+     # au << content_enc64
+     # au << iv
+     # au << key_recipient_enc64
+     # au << sig_recipient64
+     # au << timestamp.to_s
+     # au << params[:recipient]
 
-
-
-
-      content_enc64 = Base64.encode64(content_enc)
-      sig_recipient64 = Base64.encode64(sig_recipient)
+      test = Rails.cache.read('login')+content_enc64+iv+key_recipient_enc64+sig_recipient64+timestamp.to_s+params[:recipient]
+    #  au_digest = au.digest
+      sig_service = privkey_user.sign digest, test
+     # sig_service = privkey_user.private_encrypt(au_digest)
       sig_service64 = Base64.encode64(sig_service)
-      key_recipient_enc64 = Base64.encode64(key_recipient_enc)
+
+
 
     rescue
       flash[:alert] = 'User nicht gefunden'
@@ -150,14 +157,16 @@ class ClientController < ApplicationController
       return
     end
 
-
-    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {content_enc: content_enc64, recipient: params[:recipient],
-                                                                     sender: Rails.cache.read('login'), iv: iv, key_recipient_enc: key_recipient_enc64,
-                                                                     sig_recipient: sig_recipient64, timestamp: timestamp, sig_service: sig_service64}) { |response|
+    RestClient.log = $stdout
+    RestClient.post(Constant.wsurl+params[:recipient]+'/message', {InnerMessage: { Identity: Rails.cache.read('login'), Cipher: content_enc64, InitialisiationVector: iv,
+                                                                   KeyRecipientEncoded: key_recipient_enc64, SignatureRecipient: sig_recipient64 }, UnixTimestamp: timestamp,
+                                                                   RecipientIdentity: params[:recipient], SignatureService: sig_service64, Test: test }.to_json, content_type: 'application/json' , accept: 'application/json') { |response, request|
       case response.code
-        when 404
+        when 400
           flash.now[:alert] = 'User nicht gefunden'
         when 201
+          flash.now[:notice] = 'Erfolgreich verschickt'
+        when 200
           flash.now[:notice] = 'Erfolgreich verschickt'
         else
           flash.now[:alert] = 'Irgendwas ist schief gelaufen'
@@ -169,18 +178,22 @@ class ClientController < ApplicationController
   def nachricht_abholen
     timestamp =  Time.zone.now.to_i
 
-    @response = RestClient.get(Constant.wsurl+Rails.cache.read('login')+'/message', {:params => {login: Rails.cache.read('login'), timestamp: timestamp, digitale_signatur: Client.dig_sig(timestamp, Rails.cache.read('login')) }})
-    if @response != 'null'
+    id = Rails.cache.read('login')
+    sig = Client.dig_sig(timestamp, id)
 
-    @response = JSON.parse(@response, symbolize_names: true)
+    response = RestClient.get Constant.wsurl+Rails.cache.read('login')+'/message', {params:  {UnixTimestamp: timestamp, Identity: id,  SignatureService: sig, accept: 'application/json'}}
 
-    pub_key = JSON.parse(Client.get_pubkey(@response[:sender]), symbolize_names: true)
+    if response != 'null'
+
+    response = JSON.parse(response, symbolize_names: true)
+
+    pub_key = JSON.parse(Client.get_pubkey(response[:sender]), symbolize_names: true)
 
     pubkey_user = OpenSSL::PKey::RSA.new(pub_key[:pubkey_user])
 
     check = false
     begin
-      pubkey_user.public_decrypt(Base64.decode64(@response[:sig_recipient]))
+      pubkey_user.public_decrypt(Base64.decode64(response[:sig_recipient]))
       check = true
     rescue
 
@@ -189,18 +202,18 @@ class ClientController < ApplicationController
     return head 404 unless check
 
     privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
-    key_recipient = privkey_user.private_decrypt(Base64.decode64(@response[:key_recipient_enc]))
+    key_recipient = privkey_user.private_decrypt(Base64.decode64(response[:key_recipient_enc]))
 
 
     cipher = OpenSSL::Cipher.new 'AES-128-CBC'
     cipher.decrypt
     cipher.key = key_recipient
-    cipher.iv = @response[:iv]
+    cipher.iv = response[:iv]
 
-    content = cipher.update(Base64.decode64(@response[:content_enc])) + cipher.final
+    content = cipher.update(Base64.decode64(response[:content_enc])) + cipher.final
 
 
-    @response = [@response[:sender], content, @response[:id], @response[:created_at].to_time]
+    @response = [response[:sender], content, response[:id], response[:created_at].to_time]
 
     end
 
