@@ -3,36 +3,34 @@ class ClientController < ApplicationController
   def register_server
 
     # Random 64 Byte Salt
-    salt_masterkey = SecureRandom.hex(64)
+    salt_masterkey = SecureRandom.random_bytes(64)
 
-    # Fertiger Masterkey durch Aufruf der Methode master_key in client.rb -> DRY
-    masterkey = Client.master_key(params[:pass], salt_masterkey)
+    # Fertiger Masterkey durch Aufruf der Methode generate_master_key in client.rb -> DRY
+    masterkey = Client.generate_master_key(params[:pass], salt_masterkey)
 
     # Erzeuge RSA keys
     rsa_key = OpenSSL::PKey::RSA.new 2048
 
-
     # Pubkey auslesen
     pubkey_user = rsa_key.public_key
-    # pubkey_user.gsub!('-----BEGIN PUBLIC KEY-----','')
-    # pubkey_user.sub!('-----END PUBLIC KEY-----','')
-    # pubkey_user.strip
 
     # Verschlüsselung vorbereiten
     cipher = OpenSSL::Cipher.new 'AES-128-ECB'
     cipher.encrypt
     cipher.key = masterkey
 
-
     # Verschlüsseln
     encrypted = cipher.update(rsa_key.to_pem) + cipher.final
+
     # In Base64 zum persistieren in der DB encodieren
-    privkey_user_enc = Base64.encode64(encrypted)
+    privkey_user_enc64 = Base64.encode64(encrypted)
+    salt_mk_64 = Base64.encode64(salt_masterkey)
+
 
 
 
     # Post request an den Server, WSURL als konstante URL des WebService in selbst definierter constants.rb
-    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_masterkey, publickey: pubkey_user, privatekeyencoded: privkey_user_enc}) { |response, request|
+    RestClient.post(Constant.wsurl+params[:login], {login: params[:login], saltmasterkey: salt_mk_64, publickey: pubkey_user, privatekeyencoded: privkey_user_enc64}) { |response|
       case response.code
         when 400
           flash[:alert] = 'Login bereits vergeben.'
@@ -46,19 +44,18 @@ class ClientController < ApplicationController
   end
 
   def angemeldet
-    Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
 
-    RestClient.get(Constant.wsurl+Rails.cache.read('login'), {:content_type => 'application/json', :accept => 'application/json'}) { |response|
+    RestClient.get(Constant.wsurl+params[:login], { :content_type => 'application/json' , :accept => 'application/json'}) { |response|
       case response.code
         when 400
-          Rails.cache.clear
-          redirect_to root_url, alert: 'Login falsch'
+          flash[:alert] = 'Username nicht gefunden.'
+          render :'client/index'
         when 200
           begin
             key = JSON.parse(response, symbolize_names: true)
 
-            # Fertiger Masterkey durch Aufruf der Methode master_key in client.rb -> DRY
-            masterkey = Client.master_key(params[:pass], key[:SaltMasterkey])
+            # Fertiger Masterkey durch Aufruf der Methode generate_master_key in client.rb -> DRY
+            masterkey = Client.generate_master_key(params[:pass], Base64.decode64(key[:SaltMasterkey]))
 
 
 
@@ -74,17 +71,22 @@ class ClientController < ApplicationController
             # Entschlüsseln
             privkey_user = decipher.update(privkey_user_enc) + decipher.final
 
+            Rails.cache.write('login', params[:login], timeToLive: 600.seconds)
             Rails.cache.write('priv_key', privkey_user, timeToLive: 600.seconds)
 
 
             render :'client/angemeldet'
           rescue
-            Rails.cache.clear
-            redirect_to root_url, alert: 'Passwort falsch'
+            Rails.cache.delete('login')
+            Rails.cache.delete('priv_key')
+            flash[:alert] = 'Falsches Passwort'
+            render :'client/index'
           end
         else
-          Rails.cache.clear
-          redirect_to root_path, alert: 'Irgendetwas ist falsch gelaufen.'
+          Rails.cache.delete('login')
+          Rails.cache.delete('priv_key')
+          flash[:alert] = 'Irgendetwas ist falsch gelaufen.'
+          render :'client/index'
       end
     }
 
@@ -107,9 +109,7 @@ class ClientController < ApplicationController
 
       content_enc = cipher.update(params[:msg]) + cipher.final
 
-
-      privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key')) #OpenSSL::PKey::RSA.new 2048 einsetzen um sig entschlüsselung am server zu testen, muss zu Fehler führen da nicht privkey des users
-
+      privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
 
       pubkey = OpenSSL::PKey::RSA.new(pubkey_recipient)
 
@@ -119,34 +119,21 @@ class ClientController < ApplicationController
 
       key_recipient_enc64 = Base64.encode64(key_recipient_enc)
 
-      iu = OpenSSL::Digest.new('sha256')
-
-      iu << Rails.cache.read('login')
-      iu << content_enc64
-      iu << iv
-      iu << key_recipient_enc64
-      iu_digest = iu.digest
-
-      sig_recipient = privkey_user.private_encrypt(iu_digest)
-
-      sig_recipient64 = Base64.encode64(sig_recipient)
-
-      timestamp =  Time.now.to_i #1463908070 einsetzen, um Timestamp check am Server zu testen, muss zu Fehler führen
-
+      #SHA256
       digest = OpenSSL::Digest::SHA256.new
 
-     # au << Rails.cache.read('login')
-     # au << content_enc64
-     # au << iv
-     # au << key_recipient_enc64
-     # au << sig_recipient64
-     # au << timestamp.to_s
-     # au << params[:recipient]
+      # Strings für hash verketten
+      hash_data = Rails.cache.read('login')+content_enc64+iv+key_recipient_enc64
+      # Digitale signatur mit private key
+      sig_recipient = privkey_user.sign digest, hash_data
+      sig_recipient64 = Base64.encode64(sig_recipient)
 
-      test = Rails.cache.read('login')+content_enc64+iv+key_recipient_enc64+sig_recipient64+timestamp.to_s+params[:recipient]
-    #  au_digest = au.digest
-      sig_service = privkey_user.sign digest, test
-     # sig_service = privkey_user.private_encrypt(au_digest)
+      timestamp =  Time.zone.now.to_i
+
+      # Strings für hash verketten
+      hash_data2 = Rails.cache.read('login')+content_enc64+iv+key_recipient_enc64+sig_recipient64+timestamp.to_s+params[:recipient]
+      # Digitale signatur mit private key
+      sig_service = privkey_user.sign digest, hash_data2
       sig_service64 = Base64.encode64(sig_service)
 
 
@@ -157,10 +144,9 @@ class ClientController < ApplicationController
       return
     end
 
-    RestClient.log = $stdout
     RestClient.post(Constant.wsurl+params[:recipient]+'/message', {InnerMessage: { Identity: Rails.cache.read('login'), Cipher: content_enc64, InitialisiationVector: iv,
                                                                    KeyRecipientEncoded: key_recipient_enc64, SignatureRecipient: sig_recipient64 }, UnixTimestamp: timestamp,
-                                                                   RecipientIdentity: params[:recipient], SignatureService: sig_service64, Test: test }.to_json, content_type: 'application/json' , accept: 'application/json') { |response, request|
+                                                                   RecipientIdentity: params[:recipient], SignatureService: sig_service64 }.to_json, accept: 'application/json') { |response|
       case response.code
         when 400
           flash.now[:alert] = 'User nicht gefunden'
@@ -205,6 +191,7 @@ class ClientController < ApplicationController
     key_recipient = privkey_user.private_decrypt(Base64.decode64(response[:key_recipient_enc]))
 
 
+    sig_service = privkey_user.sign digest, test
     cipher = OpenSSL::Cipher.new 'AES-128-CBC'
     cipher.decrypt
     cipher.key = key_recipient
@@ -308,7 +295,8 @@ class ClientController < ApplicationController
 
   def logout
 
-    Rails.cache.clear
+    Rails.cache.delete('login')
+    Rails.cache.delete('priv_key')
 
     flash[:notice] = 'Erfolgreich ausgelogt'
 

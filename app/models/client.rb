@@ -9,7 +9,7 @@ class Client
   end
 
   # Masterkey bilden
-  def self.master_key(pass, salt)
+  def self.generate_master_key(pass, salt)
     # Iterationen
     iter = 10000
 
@@ -50,12 +50,11 @@ class Client
 
   def self.dig_sig(timestamp, login)
 
-    iu = OpenSSL::Digest.new('sha256')
-    iu << timestamp.to_s
-    iu << login
-    dig_sig = iu.digest
-
     privkey_user = OpenSSL::PKey::RSA.new(Rails.cache.read('priv_key'))
+    digest = OpenSSL::Digest.new('SHA256')
+    # digest = OpenSSL::Digest.new('sha256')
+    # digest = OpenSSL::Digest::SHA256.new alle nicht kompatibel zur .net Lösung von David :(
+    dig_sig = timestamp.to_s+login
 
     return Base64.encode64(privkey_user.sign digest, dig_sig)
 
